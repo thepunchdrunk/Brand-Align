@@ -1,4 +1,3 @@
-
 export enum UserRole {
   GENERAL_USER = 'GENERAL_USER',
   ADMIN = 'ADMIN'
@@ -8,7 +7,7 @@ export enum AppView {
   UPLOAD = 'UPLOAD',
   RESULTS = 'RESULTS',
   HISTORY = 'HISTORY',
-  BRAND_RULES = 'BRAND_RULES',
+  BRAND_GUIDELINES = 'BRAND_GUIDELINES',
   KNOWLEDGE_BASE = 'KNOWLEDGE_BASE',
   USER_MANAGEMENT = 'USER_MANAGEMENT',
   ANALYTICS = 'ANALYTICS'
@@ -51,8 +50,11 @@ export enum AssetType {
 
 export interface BrandSettings {
   brandName: string;
-  toneVoice: string;
-  bannedTerms: string;
+  mission: string;        // Strategic Mission Statement
+  audience: string;       // Target Audience Personas
+  toneVoice: string;      // Voice Archetype & tonal rules
+  styleGuide: string;     // Grammar, Mechanics, Formatting (e.g. Dates, Capitalization)
+  bannedTerms: string;    // Negative constraints
   inclusiveLanguage: boolean;
 }
 
@@ -87,6 +89,7 @@ export interface UploadState {
   purpose: Purpose;
   region: Region;
   assetType: AssetType;
-  imageBase64?: string;
+  fileBase64?: string;
   mimeType?: string;
+  additionalContext: string;
 }

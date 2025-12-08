@@ -50,10 +50,13 @@ const analysisSchema: Schema = {
 const settingsExtractionSchema: Schema = {
   type: Type.OBJECT,
   properties: {
-    brandName: { type: Type.STRING, description: "The name of the organization or brand found in the text." },
-    toneVoice: { type: Type.STRING, description: "A detailed description of the tone of voice based on the text (e.g. 'Professional, authoritative, but approachable')." },
-    bannedTerms: { type: Type.STRING, description: "A comma-separated list of negative, prohibited, or discouraged words found in the text." },
-    inclusiveLanguage: { type: Type.BOOLEAN, description: "True if the text mentions inclusivity, diversity, or gender-neutral language requirements." }
+    brandName: { type: Type.STRING },
+    mission: { type: Type.STRING },
+    audience: { type: Type.STRING },
+    toneVoice: { type: Type.STRING },
+    styleGuide: { type: Type.STRING },
+    bannedTerms: { type: Type.STRING },
+    inclusiveLanguage: { type: Type.BOOLEAN }
   },
   required: ["brandName", "toneVoice", "bannedTerms", "inclusiveLanguage"]
 };
@@ -74,43 +77,72 @@ export const analyzeContent = async (
   region: Region,
   assetType: AssetType,
   settings: BrandSettings,
-  imageBase64?: string,
-  mimeType?: string
+  fileBase64?: string,
+  mimeType?: string,
+  additionalContext?: string
 ): Promise<AnalysisResult> => {
   const ai = getClient();
   
+  const isVisual = [AssetType.IMAGE, AssetType.VIDEO, AssetType.PRESENTATION, AssetType.WEBSITE, AssetType.ADVERTISEMENT, AssetType.SOCIAL_POST].includes(assetType);
+  
+  const visualCriteria = isVisual 
+    ? `1. Visual: Analyze the visual elements, composition, color usage, text overlays, and overall aesthetic alignment against the brand.`
+    : `1. Visual (Structure): Evaluate the structure, formatting, hierarchy, and readability of the document against the Editorial Style Guide (e.g. Capitalization, Dates, Numbers).`;
+
   const systemInstruction = `
     You are an expert Brand Alignment & Cultural Intelligence Engine acting as the guardian for the brand "${settings.brandName}".
     
-    Configuration:
+    === BRAND GUIDELINES CONFIGURATION ===
+    
+    1. MISSION & PURPOSE:
+    ${settings.mission}
+    
+    2. TARGET AUDIENCE PERSONAS:
+    ${settings.audience}
+    
+    3. VOICE & TONE ARCHETYPE:
+    ${settings.toneVoice}
+    
+    4. EDITORIAL STYLE GUIDE (Grammar, Formatting, Mechanics):
+    ${settings.styleGuide}
+    
+    5. NEGATIVE CONSTRAINTS (Banned Terms):
+    ${settings.bannedTerms}
+    
+    6. INCLUSIVITY SETTING:
+    ${settings.inclusiveLanguage ? "Strict Global Inclusivity (Gender-neutral, culturally sensitive)" : "Standard"}
+    
+    === CONTEXT ===
     - Asset Type: ${assetType}
-    - Brand Tone: ${settings.toneVoice}
-    - Prohibited Terms (Flag as Compliance/Terminology Issue): ${settings.bannedTerms}
-    - Strict Inclusivity Mode: ${settings.inclusiveLanguage ? "Active" : "Standard"}
     - Target Purpose: ${purpose}
     - Target Region: ${region}
+    - User Context: "${additionalContext || "None"}"
 
     Your goal is to score the content and provide actionable fixes.
-    If an image is provided, analyze the visual elements, text overlays, and overall aesthetic alignment.
     
-    Scoring Criteria:
-    1. Visual: Does the text/description/image imply high-quality formatting suitable for a ${assetType}?
-    2. Tone: Does it match the "${settings.toneVoice}" style and the expectation for ${purpose}?
+    IMPORTANT INSTRUCTION:
+    Analyze the ACTUAL content provided (Text, PDF, Audio, or Image). Do NOT simulate or hallucinate content.
+    If the content contains text, analyze it deeply for tone, terminology, and style mechanics.
+    
+    SCORING CRITERIA:
+    ${visualCriteria}
+    2. Tone: Does it match the "${settings.toneVoice}" style? Is it consistent with the Mission?
     3. Terminology: Are specific industry terms used correctly? FLAG any usage of: ${settings.bannedTerms}.
     4. Compliance: Are there legal risks or prohibited claims?
-    5. Cultural: Is the language inclusive and culturally adapted for ${region}? If the region is Global, ensure no cultural idioms that are hard to translate are used.
+    5. Cultural: Is the language inclusive and culturally adapted for ${region}? Does it fit the Target Audience?
     6. Purpose: Does it effectively achieve the goal of a ${purpose}?
 
     Return a JSON object matching the provided schema.
   `;
 
   try {
-    const parts: any[] = [{ text: content || 'Analyze this asset.' }];
-    if (imageBase64 && mimeType) {
+    const parts: any[] = [{ text: content || 'Analyze the attached asset.' }];
+    
+    if (fileBase64 && mimeType) {
         parts.push({
             inlineData: {
                 mimeType: mimeType,
-                data: imageBase64
+                data: fileBase64
             }
         });
     }
@@ -166,9 +198,12 @@ export const extractBrandSettings = async (content: string): Promise<BrandSettin
     
     Return a JSON object with:
     1. brandName: The likely name of the brand.
-    2. toneVoice: A concise summary of the desired tone of voice.
-    3. bannedTerms: A comma-separated string of terms that are explicitly discouraged or banned. If none found, return an empty string.
-    4. inclusiveLanguage: Boolean, true if the text mentions inclusivity, diversity, or gender-neutral language requirements.
+    2. mission: The mission statement or core purpose.
+    3. audience: Description of target audiences.
+    4. toneVoice: A detailed description of the tone of voice.
+    5. styleGuide: Specific editorial rules (capitalization, date formats, etc).
+    6. bannedTerms: A comma-separated string of terms that are explicitly discouraged.
+    7. inclusiveLanguage: Boolean.
 
     Document Content:
     ${content.substring(0, 5000)}

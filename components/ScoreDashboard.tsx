@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { 
   CheckCircle, AlertTriangle, AlertOctagon, 
-  RefreshCw, Download, Sparkles, ArrowRightLeft, FileText
+  RefreshCw, Download, Sparkles, ArrowRightLeft, FileText,
+  Palette, Mic, Book, ShieldAlert, Globe, Target, ArrowRight, LayoutTemplate
 } from 'lucide-react';
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-import { AnalysisResult, Issue } from '../types';
+import { AnalysisResult, Issue, AssetType } from '../types';
 
 interface ScoreDashboardProps {
   result: AnalysisResult;
   onReset: () => void;
   originalText: string;
+  assetType: AssetType;
 }
 
-export const ScoreDashboard: React.FC<ScoreDashboardProps> = ({ result, onReset, originalText }) => {
+export const ScoreDashboard: React.FC<ScoreDashboardProps> = ({ result, onReset, originalText, assetType }) => {
   const [viewMode, setViewMode] = useState<'issues' | 'compare'>('issues');
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [fixedIssues, setFixedIssues] = useState<Set<string>>(new Set());
@@ -21,6 +23,34 @@ export const ScoreDashboard: React.FC<ScoreDashboardProps> = ({ result, onReset,
     if (score >= 90) return '#10b981'; // Emerald 500
     if (score >= 70) return '#f59e0b'; // Amber 500
     return '#ef4444'; // Red 500
+  };
+
+  const isVisualAsset = [
+      AssetType.IMAGE, 
+      AssetType.VIDEO, 
+      AssetType.PRESENTATION, 
+      AssetType.WEBSITE, 
+      AssetType.ADVERTISEMENT, 
+      AssetType.SOCIAL_POST
+  ].includes(assetType);
+
+  const getCategoryLabel = (key: string) => {
+      if (key.toLowerCase() === 'visual') {
+          return isVisualAsset ? 'Visual Aesthetics' : 'Structure & Format';
+      }
+      return key;
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'visual': return isVisualAsset ? Palette : LayoutTemplate;
+      case 'tone': return Mic;
+      case 'terminology': return Book;
+      case 'compliance': return ShieldAlert;
+      case 'cultural': return Globe;
+      case 'purpose': return Target;
+      default: return FileText;
+    }
   };
 
   const handleFix = (id: string) => {
@@ -56,7 +86,7 @@ export const ScoreDashboard: React.FC<ScoreDashboardProps> = ({ result, onReset,
   const projectedScore = Math.min(100, result.overallScore + (fixedCount * ((100 - result.overallScore) / totalIssues)));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Top Summary Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Score Card */}
@@ -85,26 +115,41 @@ export const ScoreDashboard: React.FC<ScoreDashboardProps> = ({ result, onReset,
         </div>
 
         {/* Breakdown Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 lg:col-span-2">
-             <h3 className="text-slate-500 font-medium mb-4">Category Performance</h3>
-             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {Object.entries(result.subScores).map(([key, value]) => (
-                    <div key={key} className="p-3 bg-slate-50 rounded-lg">
-                        <div className="flex justify-between items-end mb-2">
-                            <span className="capitalize text-sm font-semibold text-slate-700">{key}</span>
-                            <span className={`text-lg font-bold ${value < 70 ? 'text-red-500' : 'text-slate-800'}`}>{value}</span>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 lg:col-span-2 flex flex-col justify-center">
+             <div className="flex justify-between items-center mb-6">
+                <h3 className="text-slate-500 font-medium">Category Performance Breakdown</h3>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                {Object.entries(result.subScores).map(([key, value]) => {
+                    const Icon = getCategoryIcon(key);
+                    const color = getScoreColor(value as number);
+                    const label = getCategoryLabel(key);
+                    
+                    return (
+                    <div key={key} className="flex items-center gap-4 group">
+                        <div className={`p-2.5 rounded-xl bg-slate-50 border border-slate-100 group-hover:border-slate-200 transition-colors`}>
+                            <Icon className="h-5 w-5 text-slate-500" />
                         </div>
-                        <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                            <div 
-                                className="h-full rounded-full transition-all duration-500"
-                                style={{ 
-                                    width: `${value}%`, 
-                                    backgroundColor: getScoreColor(value) 
-                                }} 
-                            />
+                        <div className="flex-1 space-y-2">
+                            <div className="flex justify-between items-center">
+                                <span className="capitalize text-sm font-bold text-slate-700">{label}</span>
+                                <span className="text-sm font-bold transition-colors" style={{ color }}>{value as number}/100</span>
+                            </div>
+                            <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full rounded-full transition-all duration-1000 ease-out relative"
+                                    style={{ 
+                                        width: `${value as number}%`, 
+                                        backgroundColor: color,
+                                        boxShadow: `0 0 10px ${color}40`
+                                    }} 
+                                >
+                                    <div className="absolute inset-0 bg-white/20"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                ))}
+                )})}
              </div>
         </div>
       </div>
@@ -161,7 +206,7 @@ export const ScoreDashboard: React.FC<ScoreDashboardProps> = ({ result, onReset,
                                     issue.severity === 'Medium' ? 'bg-amber-100 text-amber-700' : 
                                     'bg-blue-100 text-blue-700'
                                 }`}>
-                                    {issue.category}
+                                    {getCategoryLabel(issue.category)}
                                 </span>
                                 {fixedIssues.has(issue.id) ? (
                                     <CheckCircle className="h-4 w-4 text-emerald-500" />
@@ -182,8 +227,7 @@ export const ScoreDashboard: React.FC<ScoreDashboardProps> = ({ result, onReset,
                         <div className="p-6 border-b border-slate-100">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <h3 className="text-xl font-bold text-slate-800 mb-2">{selectedIssue.category} Issue</h3>
-                                    <p className="text-slate-600">{selectedIssue.description}</p>
+                                    <h3 className="text-xl font-bold text-slate-800 mb-2">{getCategoryLabel(selectedIssue.category)} Issue</h3>
                                 </div>
                                 <span className={`px-3 py-1 rounded-full text-sm font-bold ${
                                     selectedIssue.severity === 'High' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
@@ -193,41 +237,61 @@ export const ScoreDashboard: React.FC<ScoreDashboardProps> = ({ result, onReset,
                             </div>
                         </div>
                         
-                        <div className="flex-1 p-6 bg-slate-50/50">
-                            <div className="bg-white border border-emerald-100 rounded-xl p-6 shadow-sm">
-                                <h4 className="text-sm font-semibold text-emerald-800 uppercase tracking-wide mb-3 flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4" /> AI Suggestion
-                                </h4>
-                                <p className="text-lg text-slate-800 font-medium leading-relaxed">
-                                    "{selectedIssue.suggestion}"
-                                </p>
-                                <div className="mt-6 flex gap-3">
+                        <div className="flex-1 p-6 bg-slate-50/50 space-y-6">
+                            
+                            {/* Visual Comparison / Fix Block */}
+                            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                                    <div className="p-5 bg-amber-50/30">
+                                        <div className="text-xs font-bold text-amber-600 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                            <AlertTriangle className="h-3 w-3" /> Issue Detected
+                                        </div>
+                                        <p className="text-slate-700 text-sm leading-relaxed font-medium">
+                                            {selectedIssue.description}
+                                        </p>
+                                    </div>
+                                    <div className="p-5 bg-emerald-50/30">
+                                        <div className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                            <Sparkles className="h-3 w-3" /> Recommended Fix
+                                        </div>
+                                        <p className="text-slate-800 text-base leading-relaxed font-semibold">
+                                            "{selectedIssue.suggestion}"
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                                    <button 
+                                        className="px-4 py-2 rounded-lg font-semibold text-sm text-slate-500 hover:bg-slate-200 transition-colors"
+                                    >
+                                        Ignore
+                                    </button>
                                     <button 
                                         onClick={() => handleFix(selectedIssue.id)}
-                                        className={`px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-colors ${
+                                        className={`px-5 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 transition-all shadow-sm ${
                                             fixedIssues.has(selectedIssue.id)
-                                            ? 'bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200'
-                                            : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-200'
+                                            ? 'bg-white text-emerald-600 border border-emerald-200'
+                                            : 'bg-emerald-600 text-white hover:bg-emerald-700'
                                         }`}
                                     >
                                         {fixedIssues.has(selectedIssue.id) ? (
-                                            <>Undo Fix</>
+                                            <>
+                                            <CheckCircle className="h-4 w-4" />
+                                            Fix Applied
+                                            </>
                                         ) : (
-                                            <>Accept Fix</>
+                                            <>
+                                            Apply Fix
+                                            <ArrowRight className="h-4 w-4" />
+                                            </>
                                         )}
-                                    </button>
-                                    <button 
-                                        className="px-6 py-2.5 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
-                                    >
-                                        Ignore
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="mt-8">
-                                <h4 className="text-sm font-semibold text-slate-500 mb-2">Why is this flagged?</h4>
-                                <p className="text-sm text-slate-600">
-                                    Based on the <strong>{selectedIssue.category}</strong> guidelines for your selected purpose, 
+                            <div className="px-2">
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Context & Guidelines</h4>
+                                <p className="text-sm text-slate-500 leading-relaxed">
+                                    Based on the <strong>{getCategoryLabel(selectedIssue.category)}</strong> guidelines for your selected purpose, 
                                     this content may cause misalignment or cultural friction. 
                                     {selectedIssue.severity === 'High' && " Immediate attention is recommended due to potential compliance risks."}
                                 </p>

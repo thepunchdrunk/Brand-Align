@@ -89,7 +89,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
                     System Configuration
                     </div>
                     <div className="space-y-1">
-                        <NavButton view={AppView.BRAND_RULES} icon={Settings} label="Brand Rules Engine" />
+                        <NavButton view={AppView.BRAND_GUIDELINES} icon={Settings} label="Brand Guidelines" />
                         <NavButton view={AppView.USER_MANAGEMENT} icon={Users} label="User Management" />
                     </div>
                 </div>
@@ -136,7 +136,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
             <div>
               <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
                   {currentView === AppView.HISTORY && (userRole === UserRole.ADMIN ? 'Global Audit Logs' : 'My Activity History')}
-                  {currentView === AppView.BRAND_RULES && 'Brand Rules Engine'}
+                  {currentView === AppView.BRAND_GUIDELINES && 'Brand Guidelines'}
                   {currentView === AppView.ANALYTICS && 'Analytics Dashboard'}
                   {currentView === AppView.USER_MANAGEMENT && 'User Management'}
                   {(currentView === AppView.UPLOAD || currentView === AppView.RESULTS) && 'Content Analysis'}
@@ -144,7 +144,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
               </h1>
               <p className="text-slate-500 mt-2 text-sm font-medium">
                 {currentView === AppView.HISTORY && (userRole === UserRole.ADMIN ? 'Review system-wide compliance events and actions.' : 'Review your past analyses and scores.')}
-                {currentView === AppView.BRAND_RULES && 'Configure voice, tone, and compliance standards.'}
+                {currentView === AppView.BRAND_GUIDELINES && 'View official voice, tone, and compliance standards.'}
                 {currentView === AppView.ANALYTICS && 'Real-time metrics on brand alignment, issue heatmaps, and adoption.'}
                 {currentView === AppView.USER_MANAGEMENT && 'Manage roles, permissions, and regional access.'}
                 {(currentView === AppView.UPLOAD || currentView === AppView.RESULTS) && 'AI-powered verification against your organization\'s standards.'}

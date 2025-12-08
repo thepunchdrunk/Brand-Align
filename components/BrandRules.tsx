@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { Save, Shield, AlertTriangle, Lock, Info, Upload, RefreshCw, Link2, FileCheck, BrainCircuit } from 'lucide-react';
+import { 
+    Shield, Lock, Info, Upload, RefreshCw, Link2, FileCheck, 
+    BookOpen, Mic, PenTool, Globe, ChevronRight, Copy, Check, 
+    Download, ExternalLink, Search, History, AlertCircle
+} from 'lucide-react';
 import { BrandSettings } from '../types';
 import { extractBrandSettings } from '../services/gemini';
 
@@ -10,217 +14,333 @@ interface BrandRulesProps {
 
 export const BrandRules: React.FC<BrandRulesProps> = ({ settings, onSave }) => {
   const [formData, setFormData] = useState<BrandSettings>(settings);
+  const [activeTab, setActiveTab] = useState<'identity' | 'voice' | 'style' | 'compliance'>('identity');
+  const [portalUrl, setPortalUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'core' | 'compliance'>('core');
+  const [lastSynced, setLastSynced] = useState('Oct 24, 2024 • 14:30 PM');
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
-  const handleSync = async () => {
+  const handlePortalSync = async () => {
+      if (!portalUrl) return;
       setIsSyncing(true);
-      // Simulate API call to fetch from CMS
+      // Simulate fetching from internal portal
       setTimeout(() => {
-          setFormData({
-              brandName: "Acme Corp Global",
-              toneVoice: "Our voice is human, clear, and confident. We speak to the user, not at them. We prioritize clarity over cleverness, but allow for moments of delight. We are never bureaucratic or stiff.",
-              bannedTerms: "synergy, best-in-class, disruption, hack, guru, rockstar",
-              inclusiveLanguage: true
+          setFormData(prev => ({
+              ...prev,
+              brandName: "AERION (Portal v2.2)",
+              mission: prev.mission + "\n\n[SYNCED FROM PORTAL]: Updated sustainability pillars included.",
+              bannedTerms: prev.bannedTerms + ", eco-friendly (use 'sustainable' instead)"
+          }));
+          setLastSynced(new Date().toLocaleString());
+          onSave({
+              ...formData,
+              brandName: "AERION (Portal v2.2)"
           });
           setIsSyncing(false);
-      }, 1500);
+      }, 2000);
   };
 
-  const handleSave = () => {
-      onSave(formData);
-      // Visual feedback handled by parent or toast ideally
+  const copyToClipboard = (text: string, section: string) => {
+      navigator.clipboard.writeText(text);
+      setCopiedSection(section);
+      setTimeout(() => setCopiedSection(null), 2000);
   };
+
+  const TabButton = ({ id, icon: Icon, label, description }: { id: typeof activeTab, icon: any, label: string, description: string }) => (
+      <button 
+        onClick={() => setActiveTab(id)}
+        className={`w-full text-left px-5 py-4 rounded-xl flex items-start justify-between group transition-all duration-200 border ${
+            activeTab === id 
+            ? 'bg-indigo-50 border-indigo-200 shadow-sm' 
+            : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
+        }`}
+      >
+          <div className="flex gap-4">
+              <div className={`p-2 rounded-lg h-fit ${activeTab === id ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-indigo-500 transition-colors'}`}>
+                  <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                  <span className={`font-bold block text-sm ${activeTab === id ? 'text-indigo-900' : 'text-slate-700'}`}>{label}</span>
+                  <span className="text-xs text-slate-500 font-medium mt-0.5 block">{description}</span>
+              </div>
+          </div>
+          {activeTab === id && <ChevronRight className="h-5 w-5 text-indigo-400" />}
+      </button>
+  );
+
+  const ContentViewer = ({ title, content, type = 'text' }: { title: string, content: string, type?: 'text' | 'list' }) => (
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="bg-slate-50/80 border-b border-slate-200 px-6 py-4 flex justify-between items-center backdrop-blur-sm sticky top-0 z-10">
+              <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-slate-400" />
+                  {title}
+              </h3>
+              <div className="flex gap-2">
+                  <button 
+                    onClick={() => copyToClipboard(content, title)}
+                    className="p-1.5 hover:bg-white rounded-md text-slate-400 hover:text-indigo-600 transition-all border border-transparent hover:border-slate-200 hover:shadow-sm"
+                    title="Copy content"
+                  >
+                      {copiedSection === title ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                  </button>
+              </div>
+          </div>
+          <div className="p-8 bg-white font-mono text-sm leading-relaxed text-slate-600 whitespace-pre-wrap selection:bg-indigo-100 selection:text-indigo-900">
+              {content}
+          </div>
+      </div>
+  );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-12">
       
-      {/* Sync/Connect Banner */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-r from-indigo-900 to-slate-900 text-white">
-            <div className="flex items-center gap-6">
-                <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20">
-                    <BrainCircuit className="h-8 w-8 text-indigo-300" />
-                </div>
-                <div>
-                    <h2 className="text-xl font-bold">Dynamic Knowledge Graph</h2>
-                    <p className="text-indigo-200 text-sm mt-1 max-w-lg">
-                        The engine is currently running on manual configuration. Connect to your headless CMS or Brandfolder API for real-time synchronization.
-                    </p>
-                </div>
-            </div>
-            <div className="flex gap-3">
-                 <button 
-                    onClick={handleSync}
-                    disabled={isSyncing}
-                    className="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold rounded-lg flex items-center gap-2 transition-all shadow-lg shadow-indigo-900/50"
-                 >
-                    <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                    {isSyncing ? 'Syncing...' : 'Sync with CMS'}
-                 </button>
-                 <button className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-lg flex items-center gap-2 backdrop-blur-sm border border-white/10 transition-colors">
-                    <Link2 className="h-4 w-4" />
-                    Connect API
-                 </button>
-            </div>
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Brand Standards & Governance</h1>
+              <p className="text-slate-500 mt-2 flex items-center gap-2 text-sm">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-bold text-[10px] uppercase tracking-wide">
+                      <Shield className="h-3 w-3" />
+                      Enforced
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span>Master Manual v2.1</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-400">Last Synced: {lastSynced}</span>
+              </p>
           </div>
           
-          {/* Quick Stats Strip */}
-          <div className="bg-white p-4 border-t border-slate-100 flex divide-x divide-slate-100">
-              <div className="px-6 flex-1 flex items-center gap-3">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Last Synced</div>
-                  <div className="text-sm font-semibold text-slate-700">Just now</div>
+          <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-xs font-medium text-slate-600">
+                  <History className="h-3.5 w-3.5 text-slate-400" />
+                  <span>Version History</span>
+                  <ChevronRight className="h-3 w-3 rotate-90 text-slate-300 ml-1" />
               </div>
-              <div className="px-6 flex-1 flex items-center gap-3">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Source</div>
-                  <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                      <span className="text-sm font-semibold text-slate-700">Manual Override</span>
-                  </div>
-              </div>
-              <div className="px-6 flex-1 flex items-center gap-3">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Version</div>
-                  <div className="text-sm font-semibold text-slate-700">v2.5.4 (Draft)</div>
-              </div>
+              <button className="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  Export PDF
+              </button>
           </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Sidebar Tabs */}
-          <div className="lg:col-span-1 space-y-4">
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2">
+      {/* Sync Control Bar */}
+      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2">
+          <div className="flex-1 flex items-center bg-slate-50 rounded-xl border border-slate-200 px-4 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
+              <Globe className="h-4 w-4 text-slate-400 mr-3" />
+              <input 
+                  type="text" 
+                  value={portalUrl}
+                  onChange={(e) => setPortalUrl(e.target.value)}
+                  placeholder="Enter Internal Portal URL (e.g. https://brand.aerion.com/api/v1/guidelines)" 
+                  className="flex-1 bg-transparent py-3 text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+              />
+              {portalUrl && (
                   <button 
-                    onClick={() => setActiveTab('core')}
-                    className={`w-full text-left px-4 py-3 rounded-lg flex items-center justify-between group transition-all ${activeTab === 'core' ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}
+                      onClick={() => setPortalUrl('')}
+                      className="p-1 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"
                   >
-                      <div className="flex items-center gap-3">
-                          <Shield className={`h-5 w-5 ${activeTab === 'core' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                          <span className="font-semibold">Core Identity</span>
-                      </div>
-                      {activeTab === 'core' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
+                      <span className="sr-only">Clear</span>
+                      <div className="h-4 w-4 flex items-center justify-center font-bold text-[10px]">✕</div>
                   </button>
-                  <button 
-                    onClick={() => setActiveTab('compliance')}
-                    className={`w-full text-left px-4 py-3 rounded-lg flex items-center justify-between group transition-all ${activeTab === 'compliance' ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}
-                  >
-                      <div className="flex items-center gap-3">
-                          <AlertTriangle className={`h-5 w-5 ${activeTab === 'compliance' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                          <span className="font-semibold">Risk & Compliance</span>
-                      </div>
-                      {activeTab === 'compliance' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
-                  </button>
-              </div>
+              )}
+          </div>
+          <div className="flex gap-2">
+             <button 
+                  onClick={handlePortalSync}
+                  disabled={isSyncing || !portalUrl}
+                  className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${
+                      isSyncing 
+                      ? 'bg-slate-100 text-slate-400 cursor-wait' 
+                      : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-md shadow-indigo-500/20'
+                  }`}
+              >
+                  <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Fetching...' : 'Fetch from Portal'}
+             </button>
+             <div className="w-px bg-slate-200 my-2 mx-1"></div>
+             <button 
+                  onClick={() => document.getElementById('manual-upload')?.click()}
+                  className="px-6 py-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 rounded-xl font-bold text-sm flex items-center gap-2 transition-all"
+             >
+                  <Upload className="h-4 w-4" />
+                  Upload Manual
+             </button>
+             <input 
+                id="manual-upload" 
+                type="file" 
+                className="hidden" 
+                accept=".pdf,.docx,.txt"
+                onChange={async (e) => {
+                    if (e.target.files?.[0]) {
+                        const settings = await extractBrandSettings("Simulated extraction...");
+                        setFormData(settings);
+                    }
+                }}
+             />
+          </div>
+      </div>
 
-              <div className="bg-indigo-900 rounded-xl p-6 text-white relative overflow-hidden">
-                   <div className="absolute top-0 right-0 p-4 opacity-10">
-                       <Upload className="h-24 w-24" />
-                   </div>
-                   <h3 className="font-bold text-lg mb-2">Import Guidelines</h3>
-                   <p className="text-indigo-200 text-sm mb-4">Upload PDF/DOCX brand books to auto-extract rules.</p>
-                   <button 
-                     onClick={() => document.getElementById('file-upload-rules')?.click()}
-                     className="w-full py-2 bg-white text-indigo-900 rounded-lg font-bold text-sm hover:bg-indigo-50 transition-colors"
-                    >
-                       Upload Document
-                   </button>
-                   <input 
-                    type="file" 
-                    id="file-upload-rules" 
-                    className="hidden" 
-                    accept=".txt,.pdf,.docx"
-                    onChange={async (e) => {
-                        if (e.target.files?.[0]) {
-                            const text = `Simulated extraction from ${e.target.files[0].name}...`; 
-                            const settings = await extractBrandSettings(text);
-                            setFormData(settings);
-                        }
-                    }}
-                   />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Navigation Sidebar */}
+          <div className="lg:col-span-3 space-y-6 sticky top-8">
+              <nav className="space-y-2">
+                  <div className="px-4 pb-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sections</span>
+                  </div>
+                  <TabButton 
+                    id="identity" 
+                    icon={Shield} 
+                    label="Identity & Strategy" 
+                    description="Mission, values, and audience."
+                  />
+                  <TabButton 
+                    id="voice" 
+                    icon={Mic} 
+                    label="Voice & Tone" 
+                    description="Persona, writing style, and mechanics."
+                  />
+                  <TabButton 
+                    id="style" 
+                    icon={PenTool} 
+                    label="Visual System" 
+                    description="Logo, color, typography, and motion."
+                  />
+                  <TabButton 
+                    id="compliance" 
+                    icon={Lock} 
+                    label="Governance" 
+                    description="Legal, restrictions, and inclusion."
+                  />
+              </nav>
+
+              <div className="bg-indigo-900 rounded-2xl p-6 text-white relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <Link2 className="h-24 w-24 rotate-12" />
+                  </div>
+                  <h3 className="font-bold text-lg mb-2 relative z-10">Need Help?</h3>
+                  <p className="text-indigo-200 text-sm mb-4 relative z-10 leading-relaxed">
+                      Contact the Brand Office for clarifications on complex use-cases.
+                  </p>
+                  <button className="w-full py-2 bg-white text-indigo-900 rounded-lg font-bold text-xs hover:bg-indigo-50 transition-colors relative z-10">
+                      Open Support Ticket
+                  </button>
               </div>
           </div>
 
-          {/* Main Form Area */}
-          <div className="lg:col-span-2">
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-                  {activeTab === 'core' && (
-                      <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                          <div>
-                              <h3 className="text-lg font-bold text-slate-900 mb-1">Brand Identity</h3>
-                              <p className="text-sm text-slate-500 mb-6">Define how the brand refers to itself and sounds.</p>
-                              
-                              <div className="space-y-4">
-                                  <div>
-                                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Primary Brand Name</label>
-                                      <input 
-                                          type="text" 
-                                          value={formData.brandName}
-                                          onChange={e => setFormData({...formData, brandName: e.target.value})}
-                                          className="w-full p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-900 font-medium transition-shadow"
-                                      />
-                                  </div>
+          {/* Content Area */}
+          <div className="lg:col-span-9 space-y-6">
+              
+              {/* Tab: Identity */}
+              {activeTab === 'identity' && (
+                  <>
+                      <div className="prose prose-slate max-w-none">
+                          <h2 className="text-2xl font-bold text-slate-900 mb-2">Brand Identity & Strategy</h2>
+                          <p className="text-slate-500">The philosophical engine that drives AERION's market presence.</p>
+                      </div>
 
-                                  <div>
-                                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tone of Voice Definition</label>
-                                      <textarea 
-                                          value={formData.toneVoice}
-                                          onChange={e => setFormData({...formData, toneVoice: e.target.value})}
-                                          className="w-full h-40 p-4 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-700 leading-relaxed resize-none transition-shadow"
-                                          placeholder="e.g. Friendly, professional, and concise..."
-                                      />
-                                  </div>
-                              </div>
-                          </div>
-                          
-                          <div className="pt-6 border-t border-slate-100">
-                               <label className="flex items-center justify-between cursor-pointer group">
-                                   <div>
-                                       <span className="font-bold text-slate-900 block group-hover:text-indigo-700 transition-colors">Strict Inclusivity Protocol</span>
-                                       <span className="text-sm text-slate-500">Enforce gender-neutral and culturally sensitive language globally.</span>
-                                   </div>
-                                   <div className={`w-14 h-8 rounded-full p-1 transition-colors ${formData.inclusiveLanguage ? 'bg-indigo-600' : 'bg-slate-200'}`} onClick={() => setFormData({...formData, inclusiveLanguage: !formData.inclusiveLanguage})}>
-                                       <div className={`w-6 h-6 rounded-full bg-white shadow-sm transition-transform ${formData.inclusiveLanguage ? 'translate-x-6' : 'translate-x-0'}`} />
-                                   </div>
-                               </label>
+                      <ContentViewer 
+                          title="Brand Name & Nomenclature" 
+                          content={formData.brandName} 
+                      />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <ContentViewer 
+                              title="Mission Statement" 
+                              content={formData.mission} 
+                          />
+                          <ContentViewer 
+                              title="Target Audience" 
+                              content={formData.audience} 
+                          />
+                      </div>
+                  </>
+              )}
+
+              {/* Tab: Voice */}
+              {activeTab === 'voice' && (
+                  <>
+                       <div className="prose prose-slate max-w-none">
+                          <h2 className="text-2xl font-bold text-slate-900 mb-2">Voice & Tone Archetype</h2>
+                          <p className="text-slate-500">Defining how we speak, write, and interact with the world.</p>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-slate-50 to-indigo-50/50 rounded-xl p-6 border border-slate-200 flex items-start gap-4">
+                          <Info className="h-6 w-6 text-indigo-500 mt-1 flex-shrink-0" />
+                          <div>
+                              <h4 className="font-bold text-slate-800 text-sm mb-1">AI Analysis Instruction</h4>
+                              <p className="text-sm text-slate-600 leading-relaxed">
+                                  The AI uses the parameters below to score "Tone" alignment. 
+                                  Ensure the pillars (Precision, Calm, Honesty) are clearly defined to minimize false positives.
+                              </p>
                           </div>
                       </div>
-                  )}
 
-                  {activeTab === 'compliance' && (
-                       <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                      <ContentViewer 
+                          title="Voice Pillars & Style Guide" 
+                          content={formData.toneVoice} 
+                      />
+                  </>
+              )}
+
+              {/* Tab: Style */}
+              {activeTab === 'style' && (
+                  <>
+                      <div className="prose prose-slate max-w-none">
+                          <h2 className="text-2xl font-bold text-slate-900 mb-2">Visual Identity System</h2>
+                          <p className="text-slate-500">Technical specifications for visual assets, layout, and motion.</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+                           {['Logo', 'Typography', 'Color'].map(item => (
+                               <div key={item} className="bg-white p-4 rounded-xl border border-slate-200 text-center hover:border-indigo-300 transition-colors cursor-pointer group">
+                                   <div className="font-bold text-slate-700 group-hover:text-indigo-600">{item}</div>
+                                   <div className="text-xs text-slate-400 mt-1">View Assets</div>
+                               </div>
+                           ))}
+                      </div>
+
+                      <ContentViewer 
+                          title="Master Visual Guidelines" 
+                          content={formData.styleGuide} 
+                      />
+                  </>
+              )}
+
+              {/* Tab: Compliance */}
+              {activeTab === 'compliance' && (
+                  <>
+                      <div className="prose prose-slate max-w-none">
+                          <h2 className="text-2xl font-bold text-slate-900 mb-2">Governance & Compliance</h2>
+                          <p className="text-slate-500">Negative constraints, legal guardrails, and prohibited terminology.</p>
+                      </div>
+
+                      <div className="bg-red-50 rounded-xl p-6 border border-red-100 flex flex-col gap-4">
+                          <div className="flex items-center gap-3 border-b border-red-200/50 pb-4">
+                              <AlertCircle className="h-5 w-5 text-red-600" />
+                              <h3 className="font-bold text-red-900">Restricted Terminology Blocklist</h3>
+                          </div>
+                          <div className="font-mono text-sm text-red-800 bg-white/50 p-4 rounded-lg border border-red-100">
+                              {formData.bannedTerms}
+                          </div>
+                          <p className="text-xs text-red-600 font-medium flex items-center gap-1">
+                              <Shield className="h-3 w-3" />
+                              Matches against these terms trigger High Severity alerts.
+                          </p>
+                      </div>
+
+                      <div className="bg-white rounded-xl border border-slate-200 p-6 flex justify-between items-center">
                            <div>
-                              <h3 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
-                                  <AlertTriangle className="h-5 w-5 text-amber-500" />
-                                  Negative Constraints
-                              </h3>
-                              <p className="text-sm text-slate-500 mb-6">Terms that should trigger immediate compliance flags.</p>
-
-                              <div className="bg-red-50/50 rounded-xl p-6 border border-red-100">
-                                  <label className="block text-xs font-bold text-red-800 uppercase tracking-wider mb-3">Restricted Terminology Blocklist</label>
-                                  <input 
-                                      type="text" 
-                                      value={formData.bannedTerms}
-                                      onChange={e => setFormData({...formData, bannedTerms: e.target.value})}
-                                      className="w-full p-4 bg-white border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none text-red-900 placeholder-red-300 shadow-sm"
-                                  />
-                                  <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
-                                      <Info className="h-3 w-3" />
-                                      Comma separated. Matches will be flagged as High Severity.
-                                  </p>
-                              </div>
+                               <h4 className="font-bold text-slate-900 text-sm">Inclusive Language Protocol</h4>
+                               <p className="text-sm text-slate-500 mt-1">Enforce gender-neutral and culturally sensitive checks globally.</p>
                            </div>
-                       </div>
-                  )}
-                  
-                  <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
-                      <button 
-                        onClick={handleSave}
-                        className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg shadow-lg flex items-center gap-2 transition-all"
-                      >
-                          <Save className="h-4 w-4" />
-                          Save Changes
-                      </button>
-                  </div>
-              </div>
+                           <div className={`px-3 py-1 rounded-full text-xs font-bold border ${formData.inclusiveLanguage ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                               {formData.inclusiveLanguage ? 'Active' : 'Disabled'}
+                           </div>
+                      </div>
+                  </>
+              )}
+
           </div>
       </div>
     </div>

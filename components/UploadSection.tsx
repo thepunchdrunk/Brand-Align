@@ -4,7 +4,7 @@ import {
   FileText, CheckCircle2, Lock, Image as ImageIcon, Video, Presentation, Mail, Globe,
   Megaphone, Users, Scale, Share2, DollarSign, Newspaper, MapPin, Check, FileType, Laptop,
   ChevronDown, Layout, AlertOctagon, Briefcase, Code2, HeartHandshake, GraduationCap, ShieldAlert,
-  ScrollText, Mic, Smartphone, Mails, Sparkles, ScanEye
+  ScrollText, Mic, Smartphone, Mails, Sparkles, ScanEye, Lightbulb, MessageSquareQuote, AlertTriangle
 } from 'lucide-react';
 import { Purpose, Region, UploadState, AssetType } from '../types';
 import { detectContext } from '../services/gemini';
@@ -42,6 +42,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [enableRegion, setEnableRegion] = useState(uploadState.region !== "Global");
+  const [formatWarning, setFormatWarning] = useState<string | null>(null);
 
   // Clear detection flash after 3 seconds
   useEffect(() => {
@@ -69,44 +70,52 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
   };
 
   const handleFile = (file: File) => {
-    // Auto-detect asset type from extension for initial state (will be refined by AI later)
+    setFormatWarning(null);
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
     let newAssetType = AssetType.DOCUMENT;
     
+    // Determine Asset Type
     if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) newAssetType = AssetType.IMAGE;
     else if (['mp4', 'mov', 'avi', 'webm'].includes(ext)) newAssetType = AssetType.VIDEO;
     else if (['ppt', 'pptx', 'key'].includes(ext)) newAssetType = AssetType.PRESENTATION;
     else if (['mp3', 'wav', 'm4a'].includes(ext)) newAssetType = AssetType.PODCAST;
+    else if (['pdf'].includes(ext)) newAssetType = AssetType.DOCUMENT;
 
-    setDetectedFields(['assetType']); // Trigger visual feedback
+    setDetectedFields(['assetType']);
 
-    // Default state update with file and type
     const newState: UploadState = { 
         ...uploadState, 
         file,
         assetType: newAssetType,
         textInput: '',
-        imageBase64: undefined,
-        mimeType: undefined
+        fileBase64: undefined,
+        mimeType: file.type
     };
 
-    // If it's an image, read as base64 for real analysis
-    if (file.type.startsWith('image/')) {
+    // SUPPORTED AI FORMATS: PDF, Image, Audio, Video, Plain Text
+    const supportedBinaryTypes = [
+        'application/pdf',
+        'image/png', 'image/jpeg', 'image/webp', 
+        'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/x-m4a',
+        'video/mp4', 'video/mpeg', 'video/quicktime'
+    ];
+
+    // Case 1: Binary files supported by Gemini (PDF, Image, Audio, Video)
+    if (supportedBinaryTypes.some(type => file.type.includes(type)) || ext === 'pdf') {
         const reader = new FileReader();
         reader.onload = (e) => {
             const result = e.target?.result as string;
-            // Extract base64 part
             const base64 = result.split(',')[1];
             setUploadState({
                 ...newState,
-                imageBase64: base64,
-                mimeType: file.type
+                fileBase64: base64,
+                mimeType: file.type || (ext === 'pdf' ? 'application/pdf' : file.type)
             });
         };
         reader.readAsDataURL(file);
     } 
-    // If it's a text file, read content
-    else if (file.type.startsWith('text/') || ext === 'txt' || ext === 'md') {
+    // Case 2: Plain Text files
+    else if (file.type.startsWith('text/') || ['txt', 'md', 'csv', 'json'].includes(ext)) {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const text = e.target?.result as string;
@@ -115,12 +124,10 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
         };
         reader.readAsText(file);
     } 
-    // Fallback for simulation (Video/PPT etc)
+    // Case 3: Unsupported Binary (DOCX, PPTX) - No Simulation, User Must Convert
     else {
-        const simulatedContent = `[System Note: ${newAssetType} analysis mode active for file "${file.name}"]\n\n(Simulated Extracted Content)\nThe asset visualizes a modern office environment. Text overlay reads: "Innovation for Everyone".\nThe tone appears corporate but friendly. Colors used are primarily Blue and White.`;
-        setUploadState({ ...newState, textInput: simulatedContent });
-        // Simulate text detection delay for non-text files
-        setTimeout(() => handleAutoDetect(simulatedContent), 500);
+        setUploadState(newState);
+        setFormatWarning("For deep analysis, please upload a PDF version or paste the text content directly. The AI cannot natively read .docx or .pptx files yet.");
     }
   };
 
@@ -253,7 +260,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                 </button>
             </div>
 
-            <div className="p-8 flex-1 flex flex-col">
+            {/* Main Content Input Area */}
+            <div className="p-8 pb-8 flex-1 flex flex-col">
                 {activeTab === 'upload' && (
                     <div className="space-y-6 flex-1 flex flex-col animate-in fade-in slide-in-from-left-4 duration-300">
                         {/* File Drop Zone */}
@@ -261,35 +269,35 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
-                            className={`border-3 border-dashed rounded-2xl p-8 text-center transition-all duration-300 flex-1 flex flex-col items-center justify-center min-h-[200px] ${
+                            className={`border-3 border-dashed rounded-2xl p-8 text-center transition-all duration-300 flex-1 flex flex-col items-center justify-center min-h-[160px] ${
                                 isDragging 
                                 ? 'border-indigo-500 bg-indigo-50/50 scale-[1.01]' 
                                 : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
                             }`}
                         >
-                            <div className="flex flex-col items-center justify-center space-y-4">
-                                <div className={`h-14 w-14 rounded-full flex items-center justify-center transition-colors ${isDragging ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
-                                    {uploadState.file ? <CheckCircle2 className="h-8 w-8 text-emerald-500"/> : <UploadCloud className="h-7 w-7" />}
+                            <div className="flex flex-col items-center justify-center space-y-3">
+                                <div className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${isDragging ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+                                    {uploadState.file ? <CheckCircle2 className="h-6 w-6 text-emerald-500"/> : <UploadCloud className="h-6 w-6" />}
                                 </div>
                                 <div>
-                                    <p className="text-lg font-bold text-slate-800">
+                                    <p className="text-base font-bold text-slate-800">
                                         {uploadState.file ? uploadState.file.name : "Drag & Drop Asset"}
                                     </p>
-                                    <p className="text-sm text-slate-500 mt-1">
-                                        Supports: DOCX, PDF, PPTX, JPG, PNG, MP4, MP3
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        PDF, MP4, MP3, JPG, PNG, TXT supported.
                                     </p>
                                 </div>
                                 <input 
                                     type="file" 
                                     className="hidden" 
                                     id="file-upload"
-                                    accept=".doc,.docx,.pdf,.txt,.ppt,.pptx,.jpg,.jpeg,.png,.mp4,.mov,.mp3,.wav"
+                                    accept=".pdf,.txt,.md,.jpg,.jpeg,.png,.mp4,.mov,.mp3,.wav,.docx,.pptx"
                                     onChange={(e) => e.target.files && handleFile(e.target.files[0])}
                                 />
                                 {!uploadState.file && (
                                     <label 
                                         htmlFor="file-upload"
-                                        className="mt-2 px-5 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-300 cursor-pointer font-bold text-xs uppercase tracking-wide transition-all shadow-sm"
+                                        className="mt-1 px-4 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-300 cursor-pointer font-bold text-xs uppercase tracking-wide transition-all shadow-sm"
                                     >
                                         Browse Files
                                     </label>
@@ -297,28 +305,43 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                             </div>
                         </div>
 
-                        {/* Text Area */}
-                        <div className="relative">
-                            <div className="absolute top-0 left-0 -mt-3 bg-white px-2 text-xs font-bold text-slate-400 uppercase tracking-wider ml-4">
-                            {uploadState.file ? 'Content Context' : 'Or Paste Text Content'}
+                        {/* Format Warning for unsupported binaries */}
+                        {formatWarning && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                                <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                                <div>
+                                    <h4 className="text-sm font-bold text-amber-800">Format Optimization Needed</h4>
+                                    <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                                        {formatWarning}
+                                    </p>
+                                </div>
                             </div>
-                            <textarea
-                                className="w-full h-24 p-4 bg-white border border-slate-300 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none resize-none text-slate-800 text-sm leading-relaxed transition-all shadow-inner"
-                                placeholder={uploadState.imageBase64 ? "Add specific context or questions about this image (optional)..." : "Paste email draft, ad copy, or announcement text here..."}
-                                value={uploadState.textInput}
-                                onChange={(e) => setUploadState({...uploadState, textInput: e.target.value})}
-                            />
-                            {uploadState.textInput && !uploadState.sharePointUrl && !uploadState.imageBase64 && (
-                                <button 
-                                    onClick={handleManualAutoDetect}
-                                    disabled={isDetecting}
-                                    className="absolute bottom-4 right-4 text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-colors border border-indigo-100"
-                                >
-                                    {isDetecting ? <Loader2 className="h-3 w-3 animate-spin"/> : <Sparkles className="h-3 w-3" />}
-                                    {isDetecting ? 'Aligning...' : 'Scan Context'}
-                                </button>
-                            )}
-                        </div>
+                        )}
+
+                        {/* Text Content Area (Only if no file) */}
+                        {!uploadState.file && (
+                            <div className="relative">
+                                <div className="absolute top-0 left-0 -mt-3 bg-white px-2 text-xs font-bold text-slate-400 uppercase tracking-wider ml-4">
+                                    Text Content
+                                </div>
+                                <textarea
+                                    className="w-full h-24 p-4 bg-white border border-slate-300 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none resize-none text-slate-800 text-sm leading-relaxed transition-all shadow-inner"
+                                    placeholder="Paste email draft, ad copy, or announcement text here to analyze..."
+                                    value={uploadState.textInput}
+                                    onChange={(e) => setUploadState({...uploadState, textInput: e.target.value})}
+                                />
+                                {uploadState.textInput && !uploadState.sharePointUrl && (
+                                    <button 
+                                        onClick={handleManualAutoDetect}
+                                        disabled={isDetecting}
+                                        className="absolute bottom-4 right-4 text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-colors border border-indigo-100"
+                                    >
+                                        {isDetecting ? <Loader2 className="h-3 w-3 animate-spin"/> : <Sparkles className="h-3 w-3" />}
+                                        {isDetecting ? 'Aligning...' : 'Scan Context'}
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -340,7 +363,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                                     <Lock className="h-4 w-4 text-slate-400" />
                                 </div>
                                 <input 
-                                    type="text"
+                                    type="text" 
                                     value={urlInput}
                                     onChange={(e) => setUrlInput(e.target.value)}
                                     placeholder="https://company.sharepoint.com/sites/marketing/docs/..." 
@@ -418,6 +441,19 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                                 <ChevronDown className="h-4 w-4" />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Context Field */}
+                    <div className="relative">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 block ml-1 flex items-center gap-1">
+                            Context
+                        </label>
+                        <textarea
+                            className="w-full p-3 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none transition-all shadow-sm placeholder:text-slate-400 h-24"
+                            placeholder="e.g. Target audience is Gen Z, tone should be casual..."
+                            value={uploadState.additionalContext || ''}
+                            onChange={(e) => setUploadState({...uploadState, additionalContext: e.target.value})}
+                        />
                     </div>
 
                     {/* Communication Goal Dropdown (Converted from Grid) */}
