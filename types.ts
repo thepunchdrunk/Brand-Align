@@ -1,3 +1,4 @@
+
 export enum UserRole {
   GENERAL_USER = 'GENERAL_USER',
   ADMIN = 'ADMIN'
@@ -50,32 +51,66 @@ export enum AssetType {
 
 export interface BrandSettings {
   brandName: string;
-  mission: string;        // Strategic Mission Statement
-  audience: string;       // Target Audience Personas
-  toneVoice: string;      // Voice Archetype & tonal rules
-  styleGuide: string;     // Grammar, Mechanics, Formatting (e.g. Dates, Capitalization)
-  bannedTerms: string;    // Negative constraints
+  mission: string;
+  audience: string;
+  toneVoice: string;
+  styleGuide: string;
+  bannedTerms: string;
   inclusiveLanguage: boolean;
 }
 
 export interface Issue {
   id: string;
-  category: 'Visual' | 'Tone' | 'Terminology' | 'Cultural' | 'Compliance' | 'Purpose';
+  category: 'Visual' | 'Cultural' | 'Compliance';
+  subcategory: string; // e.g., 'Layout', 'Tone', 'Legal'
   description: string;
   suggestion: string;
   severity: 'Low' | 'Medium' | 'High';
+  priorityScore: number; // New: Calculation of freq + impact
   fixed?: boolean;
+}
+
+export interface CulturalInsight {
+    dimension: 'Symbolism' | 'Language' | 'Taboo' | 'Values' | 'Humor';
+    observation: string;
+    riskLevel: 'Safe' | 'Risky' | 'Offensive';
+    recommendation: string;
+}
+
+export interface Claim {
+    text: string;
+    status: 'Verified' | 'Unverified' | 'Expired';
+    citation?: string;
 }
 
 export interface AnalysisResult {
   overallScore: number;
-  subScores: {
-    visual: number;
-    tone: number;
-    terminology: number;
-    compliance: number;
-    cultural: number;
-    purpose: number;
+  confidenceScore: number; // New: AI confidence in analysis
+  
+  // New Grouped Scores with Deep Metrics
+  categories: {
+      visual: {
+          score: number;
+          layoutComplexity: 'Low' | 'Optimal' | 'High'; // New
+          metrics: { name: string; status: 'Pass' | 'Fail' | 'Warn' }[];
+      };
+      cultural: {
+          score: number;
+          toneDrift: number; // New: 0-100% deviation
+          metrics: { name: string; status: 'Pass' | 'Fail' | 'Warn' }[];
+      };
+      compliance: {
+          score: number;
+          riskAssessment: 'Low' | 'Medium' | 'Critical'; // New
+          metrics: { name: string; status: 'Pass' | 'Fail' | 'Warn' }[];
+          claims: Claim[]; // New: Specific claims check
+      };
+  };
+  
+  culturalDeepDive?: {
+      regionDetected: string;
+      suitabilitySummary: string;
+      insights: CulturalInsight[];
   };
   issues: Issue[];
   correctedText?: string;
@@ -92,4 +127,20 @@ export interface UploadState {
   fileBase64?: string;
   mimeType?: string;
   additionalContext: string;
+  detectedConfidence: number; // New
 }
+
+export interface HistoryItem {
+    id: number;
+    filename: string;
+    type: AssetType;
+    date: string;
+    score: number;
+    purpose: Purpose;
+    region: Region;
+    issues: number;
+    status: 'Pass' | 'Needs Review' | 'Critical';
+    contextSnapshot?: any; // New: Store settings at time of analysis
+}
+
+export type FixIntensity = 'Low' | 'Medium' | 'High';

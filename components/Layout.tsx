@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ShieldCheck, FileText, BookOpen, History, Globe, Settings, Users, Lock, LogOut, SwitchCamera, LayoutDashboard } from 'lucide-react';
 import { AppView, UserRole } from '../types';

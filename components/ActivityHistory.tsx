@@ -1,70 +1,15 @@
 import React, { useState } from 'react';
-import { FileText, Calendar, ArrowUpRight, Clock, MoreHorizontal, Search, Filter, CheckCircle2, AlertTriangle, AlertOctagon, Download } from 'lucide-react';
-import { Purpose, Region, AssetType } from '../types';
+import { FileText, Clock, ArrowUpRight, Search, Filter, CheckCircle2, AlertTriangle, AlertOctagon, Download } from 'lucide-react';
+import { HistoryItem } from '../types';
 
-// Mock History Data
-const historyData = [
-    { 
-        id: 1, 
-        filename: "Q3_Marketing_Strategy.pptx", 
-        type: AssetType.PRESENTATION,
-        date: "2 hours ago", 
-        score: 92, 
-        purpose: Purpose.MARKETING, 
-        region: "Global", 
-        issues: 3,
-        status: 'Pass' 
-    },
-    { 
-        id: 2, 
-        filename: "Sales_Pitch_V2.docx", 
-        type: AssetType.DOCUMENT,
-        date: "Yesterday, 2:30 PM", 
-        score: 78, 
-        purpose: Purpose.SALES_PITCH, 
-        region: "North America", 
-        issues: 12,
-        status: 'Needs Review' 
-    },
-    { 
-        id: 3, 
-        filename: "Instagram_Ad_Copy.txt", 
-        type: AssetType.EMAIL,
-        date: "Yesterday, 10:15 AM", 
-        score: 65, 
-        purpose: Purpose.SOCIAL_MEDIA, 
-        region: "Global", 
-        issues: 8,
-        status: 'Critical' 
-    },
-    { 
-        id: 4, 
-        filename: "Annual_Report_Draft.pdf", 
-        type: AssetType.DOCUMENT, 
-        date: "Oct 24, 2023", 
-        score: 88, 
-        purpose: Purpose.INTERNAL_COMMS, 
-        region: "Europe", 
-        issues: 4,
-        status: 'Pass' 
-    },
-    { 
-        id: 5, 
-        filename: "Product_Launch_Video_Script.docx", 
-        type: AssetType.VIDEO,
-        date: "Oct 22, 2023", 
-        score: 81, 
-        purpose: Purpose.MARKETING, 
-        region: "APAC", 
-        issues: 6,
-        status: 'Needs Review' 
-    },
-];
+interface ActivityHistoryProps {
+  history: HistoryItem[];
+}
 
-export const ActivityHistory: React.FC = () => {
+export const ActivityHistory: React.FC<ActivityHistoryProps> = ({ history }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredHistory = historyData.filter(item => 
+  const filteredHistory = history.filter(item => 
       item.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.purpose.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -84,8 +29,39 @@ export const ActivityHistory: React.FC = () => {
       return 'text-red-500';
   };
 
+  const handleExportCSV = () => {
+      if (filteredHistory.length === 0) {
+          alert("No data to export");
+          return;
+      }
+
+      const headers = ["ID", "Filename", "Type", "Purpose", "Region", "Score", "Issues Found", "Status", "Date"].join(",");
+      const rows = filteredHistory.map(item => {
+          return [
+              item.id,
+              `"${item.filename.replace(/"/g, '""')}"`, // Escape quotes
+              item.type,
+              item.purpose,
+              item.region,
+              item.score,
+              item.issues,
+              item.status,
+              `"${new Date(item.date).toLocaleString()}"`
+          ].join(",");
+      });
+
+      const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `brand_audit_log_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Header Actions */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="relative w-full md:w-96">
@@ -103,7 +79,10 @@ export const ActivityHistory: React.FC = () => {
                 <Filter className="h-4 w-4" />
                 Filter
             </button>
-            <button className="flex-1 md:flex-none px-4 py-2 bg-indigo-600 text-white font-medium text-sm rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 shadow-sm">
+            <button 
+                onClick={handleExportCSV}
+                className="flex-1 md:flex-none px-4 py-2 bg-indigo-600 text-white font-medium text-sm rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 shadow-sm"
+            >
                 <Download className="h-4 w-4" />
                 Export Log
             </button>
@@ -152,7 +131,7 @@ export const ActivityHistory: React.FC = () => {
                           </td>
                           <td className="p-4 text-sm text-slate-500 flex items-center gap-2">
                               <Clock className="h-3 w-3" />
-                              {item.date}
+                              {new Date(item.date).toLocaleDateString()}
                           </td>
                           <td className="p-4 text-center">
                               <span className={`font-bold text-lg ${getScoreColor(item.score)}`}>

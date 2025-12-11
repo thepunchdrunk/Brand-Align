@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { 
     Shield, Lock, Info, Upload, RefreshCw, Link2, FileCheck, 
     BookOpen, Mic, PenTool, Globe, ChevronRight, Copy, Check, 
-    Download, ExternalLink, Search, History, AlertCircle
+    Download, ExternalLink, Search, History, AlertCircle, AlertTriangle, Layout
 } from 'lucide-react';
 import { BrandSettings } from '../types';
 import { extractBrandSettings } from '../services/gemini';
@@ -14,11 +15,16 @@ interface BrandRulesProps {
 
 export const BrandRules: React.FC<BrandRulesProps> = ({ settings, onSave }) => {
   const [formData, setFormData] = useState<BrandSettings>(settings);
-  const [activeTab, setActiveTab] = useState<'identity' | 'voice' | 'style' | 'compliance'>('identity');
+  const [activeTab, setActiveTab] = useState<'identity' | 'voice' | 'style' | 'compliance' | 'templates'>('identity');
   const [portalUrl, setPortalUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState('Oct 24, 2024 • 14:30 PM');
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  
+  // New: Conflict & Impact Detection
+  const [isCheckingConflicts, setIsCheckingConflicts] = useState(false);
+  const [conflicts, setConflicts] = useState<string[]>([]);
+  const [showImpactModal, setShowImpactModal] = useState(false);
 
   const handlePortalSync = async () => {
       if (!portalUrl) return;
@@ -38,6 +44,19 @@ export const BrandRules: React.FC<BrandRulesProps> = ({ settings, onSave }) => {
           });
           setIsSyncing(false);
       }, 2000);
+  };
+
+  const handleCheckConflicts = () => {
+      setIsCheckingConflicts(true);
+      setConflicts([]);
+      setTimeout(() => {
+          setConflicts([
+              "Visual Rule 'Minimalist' conflicts with 'High Density Information' in Compliance section.",
+              "Banned term 'leverage' appears in Mission Statement text."
+          ]);
+          setIsCheckingConflicts(false);
+          setShowImpactModal(true);
+      }, 1500);
   };
 
   const copyToClipboard = (text: string, section: string) => {
@@ -111,17 +130,49 @@ export const BrandRules: React.FC<BrandRulesProps> = ({ settings, onSave }) => {
           </div>
           
           <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-xs font-medium text-slate-600">
-                  <History className="h-3.5 w-3.5 text-slate-400" />
-                  <span>Version History</span>
-                  <ChevronRight className="h-3 w-3 rotate-90 text-slate-300 ml-1" />
-              </div>
+               <button 
+                    onClick={handleCheckConflicts}
+                    disabled={isCheckingConflicts}
+                    className="px-4 py-2 bg-white text-slate-700 border border-slate-200 text-sm font-bold rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2"
+                >
+                    <AlertTriangle className={`h-4 w-4 ${isCheckingConflicts ? 'animate-pulse' : ''}`} />
+                    {isCheckingConflicts ? 'Analyzing Conflicts...' : 'Check Conflicts'}
+                </button>
               <button className="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center gap-2">
                   <Download className="h-4 w-4" />
                   Export PDF
               </button>
           </div>
       </div>
+
+      {showImpactModal && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 animate-in fade-in slide-in-from-top-4">
+              <div className="flex justify-between items-start mb-4">
+                  <h4 className="text-sm font-bold text-amber-800 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Rule Conflict & Impact Analysis
+                  </h4>
+                  <button onClick={() => setShowImpactModal(false)} className="text-amber-500 hover:text-amber-700"><Check className="h-4 w-4" /></button>
+              </div>
+              <ul className="list-disc list-inside text-xs text-amber-700 space-y-1 mb-4">
+                  {conflicts.map((c, i) => <li key={i}>{c}</li>)}
+              </ul>
+              
+              <div className="bg-white/50 p-3 rounded-lg border border-amber-100">
+                  <div className="text-xs font-bold text-amber-800 uppercase tracking-wide mb-2">Simulated Impact on Last 100 Assets</div>
+                  <div className="flex items-center gap-4">
+                       <div className="flex flex-col">
+                           <span className="text-lg font-bold text-slate-700">12</span>
+                           <span className="text-[10px] text-slate-500">New Critical Issues</span>
+                       </div>
+                       <div className="flex flex-col">
+                           <span className="text-lg font-bold text-slate-700">-4%</span>
+                           <span className="text-[10px] text-slate-500">Avg Score Drop</span>
+                       </div>
+                  </div>
+              </div>
+          </div>
+      )}
 
       {/* Sync Control Bar */}
       <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2">
@@ -211,6 +262,15 @@ export const BrandRules: React.FC<BrandRulesProps> = ({ settings, onSave }) => {
                     icon={Lock} 
                     label="Governance" 
                     description="Legal, restrictions, and inclusion."
+                  />
+                  <div className="px-4 py-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Assets</span>
+                  </div>
+                   <TabButton 
+                    id="templates" 
+                    icon={Layout} 
+                    label="Master Templates" 
+                    description="Approved PPTX and DOCX layouts."
                   />
               </nav>
 
@@ -337,6 +397,50 @@ export const BrandRules: React.FC<BrandRulesProps> = ({ settings, onSave }) => {
                            <div className={`px-3 py-1 rounded-full text-xs font-bold border ${formData.inclusiveLanguage ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
                                {formData.inclusiveLanguage ? 'Active' : 'Disabled'}
                            </div>
+                      </div>
+                  </>
+              )}
+
+              {/* Tab: Templates */}
+              {activeTab === 'templates' && (
+                  <>
+                      <div className="prose prose-slate max-w-none">
+                          <h2 className="text-2xl font-bold text-slate-900 mb-2">Master Templates</h2>
+                          <p className="text-slate-500">Approved layouts for automated conformance checking.</p>
+                      </div>
+                      
+                      <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center text-center">
+                          <div className="p-4 bg-white rounded-full shadow-sm mb-4">
+                              <Upload className="h-8 w-8 text-indigo-500" />
+                          </div>
+                          <h3 className="font-bold text-slate-700">Upload Master Template</h3>
+                          <p className="text-sm text-slate-500 mt-1 mb-4">Support for .pptx, .docx, .idml</p>
+                          <button className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50">
+                              Browse Files
+                          </button>
+                      </div>
+
+                      <div className="space-y-2 mt-4">
+                          <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl">
+                              <div className="flex items-center gap-3">
+                                  <FileCheck className="h-5 w-5 text-emerald-500" />
+                                  <div>
+                                      <div className="text-sm font-bold text-slate-800">Q3_Sales_Deck_Master_v2.pptx</div>
+                                      <div className="text-xs text-slate-400">Uploaded 2 days ago • 4.2 MB</div>
+                                  </div>
+                              </div>
+                              <button className="text-xs text-red-500 font-bold hover:underline">Remove</button>
+                          </div>
+                           <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl">
+                              <div className="flex items-center gap-3">
+                                  <FileCheck className="h-5 w-5 text-emerald-500" />
+                                  <div>
+                                      <div className="text-sm font-bold text-slate-800">Legal_Memo_A4.docx</div>
+                                      <div className="text-xs text-slate-400">Uploaded 1 week ago • 1.1 MB</div>
+                                  </div>
+                              </div>
+                              <button className="text-xs text-red-500 font-bold hover:underline">Remove</button>
+                          </div>
                       </div>
                   </>
               )}
